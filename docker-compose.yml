@@ -1,0 +1,35 @@
+version: '3.8'
+
+services:
+  llm_humble:
+    image: intel_camera:latest
+    container_name: intel_camera_container
+    hostname: intel_camera_container
+    runtime: nvidia
+    environment:
+      - QT_X11_NO_MITSHM=1
+      - NVIDIA_DRIVER_CAPABILITIES=all
+      - NVIDIA_VISIBLE_DEVICES=all
+      - DISPLAY
+    devices:
+      - /dev/dri  # for GPU access
+      - /dev/video2:/dev/video2
+      - /dev/video3:/dev/video3
+      - /dev/video4:/dev/video4
+      - /dev/video5:/dev/video5
+      - /dev/video6:/dev/video6
+      - /dev/video7:/dev/video7
+    volumes:
+      - /tmp/.X11-unix:/tmp/.X11-unix
+      - ./src:/Intel_Camera/src:rw  # Mount the current directory as readable and writable
+
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - capabilities: [gpu]
+    stdin_open: true
+    tty: true
+    restart: "no"
+    network_mode: "host"  # Add this line to use the host network
+    command: /bin/bash  # Add this line to start a bash shell
