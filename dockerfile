@@ -32,7 +32,8 @@ RUN apt-get update
 RUN apt-get install -y python3-pip \
     python3-pip \
     python3-dev \
-    python3-opencv
+    python3-opencv \
+    ros-humble-cv-bridge
 
 RUN pip3 install --pre torch --index-url https://download.pytorch.org/whl/nightly/cu124
 RUN pip3 install tensorflow
@@ -44,7 +45,21 @@ RUN python3 -c "import torch; print(torch.cuda.is_available())" && \
     python3 -c "import tensorflow as tf; print(tf.config.list_physical_devices('GPU'))"
 
 RUN apt-get install -y ros-humble-librealsense2* \
-                        ros-humble-realsense2-*
+                        ros-humble-realsense2-* 
+
+RUN apt-get install -y python3-opencv
+
+RUN apt-get install -y libopencv-dev
+
+# Dependencies required by MediaPipe
+RUN apt-get update && apt-get install -y \
+    ffmpeg \
+    cmake \
+    libgl1-mesa-glx \
+    libglib2.0-0
+
+# MediaPipe install
+RUN pip3 install mediapipe
 
 RUN source /opt/ros/humble/setup.bash
 
