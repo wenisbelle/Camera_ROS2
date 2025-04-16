@@ -48,29 +48,16 @@ class VisionNode(Node):
             origin_point = self.origin_ref(wrist, middle_finger_base)
             parpendicular_vector = self.perpendicular_vector(origin_point, middle_finger_base)
             
-            h, w, _ = img.shape
-                # Convert normalized coordinates (0–1) to pixel coordinates
-            ox, oy = int(origin_point[0] * w), int(origin_point[1] * h)
-            mx, my = int(middle_finger_base.x * w), int(middle_finger_base.y * h)
-            print(h,w)
-            # Draw origin point
-            cv2.circle(img, (ox, oy), 8, (0, 255, 0), cv2.FILLED)
 
-            # Draw vector (line) from origin to middle finger base
-            cv2.line(img, (ox, oy), (mx, my), (0, 0, 255), 2)
+            self.draw_point(img, origin_point)
+            self.draw_point(img, [middle_finger_base.x,  middle_finger_base.y])
+            self.draw_point(img, parpendicular_vector)
+            self.draw_middle_point(img)
+            
+            self.draw_vector(img, origin_point, parpendicular_vector)
+            self.draw_vector(img, origin_point, [middle_finger_base.x,  middle_finger_base.y])
 
-
-            # Convert both to pixel coordinates
-            px, py = int(parpendicular_vector[0] * w), int(parpendicular_vector[1] * h)
-            cv2.circle(img, (px, py), 8, (0, 255, 0), cv2.FILLED)
-            cv2.circle(img, (mx, my), 8, (0, 255, 0), cv2.FILLED)
-            # Draw perpendicular line
-            cv2.line(img, (ox, oy), (px, py), (255, 0, 0), 2)  # Blue line
-
-            #print(origin_point)
-            #print(parpendicular_vector)
-            #print(middle_finger_base)
-        
+       
 
         # Publish annotated image
         try:
@@ -101,6 +88,22 @@ class VisionNode(Node):
         perp_y = origin[1] + perp_dy
 
         return [perp_x, perp_y]
+
+    def draw_point(self, img, point):
+        h, w, _ = img.shape
+        px, py = int(point[0] * w), int(point[1] * h)
+        cv2.circle(img, (px, py), 8, (0, 255, 0), cv2.FILLED)
+
+    def draw_vector(self, img, origin_point, end_point):
+        h, w, _ = img.shape
+        ox, oy = int(origin_point[0] * w), int(origin_point[1] * h)
+        px, py = int(end_point[0] * w), int(end_point[1] * h)
+        cv2.line(img, (ox, oy), (px, py), (0, 0, 255), 2)
+
+    def draw_middle_point(self, img):
+        h, w, _ = img.shape
+        px, py = w//2, h//2
+        cv2.circle(img, (px, py), 8, (0, 255, 0), cv2.FILLED)
 
 def main(args=None):
     rclpy.init(args=args)

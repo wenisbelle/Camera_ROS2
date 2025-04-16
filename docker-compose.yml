@@ -13,12 +13,15 @@ services:
       - DISPLAY
     devices:
       - /dev/dri  # for GPU access
+      - /dev/video0:/dev/video0
+      - /dev/video1:/dev/video1
       - /dev/video2:/dev/video2
       - /dev/video3:/dev/video3
       - /dev/video4:/dev/video4
       - /dev/video5:/dev/video5
       - /dev/video6:/dev/video6
       - /dev/video7:/dev/video7
+      - /dev/bus/usb:/dev/bus/usb
     volumes:
       - /tmp/.X11-unix:/tmp/.X11-unix
       - ./src:/Intel_Camera/src:rw  # Mount the current directory as readable and writable
