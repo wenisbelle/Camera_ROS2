@@ -20,7 +20,7 @@ class VisionNode(Node):
         self.publisher = self.create_publisher(Image, '/vision/image_annotated', 10)
         
         self.bridge = CvBridge()
-        self.mp_hands = mp.solutions.hands.Hands()
+        self.mp_hands = mp.solutions.hands.Hands(max_num_hands=1)
         self.mp_draw = mp.solutions.drawing_utils
         self.count = 0
         
@@ -44,20 +44,24 @@ class VisionNode(Node):
         
             wrist = results.multi_hand_landmarks[0].landmark[0]
             middle_finger_base = results.multi_hand_landmarks[0].landmark[9]
-      
-            origin_point = self.origin_ref(wrist, middle_finger_base)
-            parpendicular_vector = self.perpendicular_vector(origin_point, middle_finger_base)
+            hand_point = self.origin_ref(wrist, middle_finger_base)
+            perpendicular_vector = self.perpendicular_vector(hand_point, middle_finger_base)
             
-
-            self.draw_point(img, origin_point)
+            self.draw_point(img, hand_point)
             self.draw_point(img, [middle_finger_base.x,  middle_finger_base.y])
-            self.draw_point(img, parpendicular_vector)
-            self.draw_middle_point(img)
-            
-            self.draw_vector(img, origin_point, parpendicular_vector)
-            self.draw_vector(img, origin_point, [middle_finger_base.x,  middle_finger_base.y])
-
+            self.draw_point(img, perpendicular_vector)
+            self.draw_middle_point(img)            
+            self.draw_vector(img, hand_point, perpendicular_vector)
+            self.draw_vector(img, hand_point, [middle_finger_base.x,  middle_finger_base.y])
        
+            h, w, _ = img.shape
+            origin = [w/2, h/2]
+            distance = self.calculate_distance_from_center(hand_point)
+            angle = self.calculate_angle(hand_point, perpendicular_vector)
+            print(f"Distance: {distance} and Angle: {angle}")
+            print(h)
+            #print(f"Origin: {origin}")
+        
 
         # Publish annotated image
         try:
@@ -70,9 +74,11 @@ class VisionNode(Node):
         cv2.imshow("MediaPipe Hands", img)
         cv2.waitKey(1)
 
+    
+
     def origin_ref(self, wrist, middle_finger_base):
-        origin_point = [(wrist.x + middle_finger_base.x)/2, (wrist.y + middle_finger_base.y)/2]
-        return origin_point
+        hand_point = [(wrist.x + middle_finger_base.x)/2, (wrist.y + middle_finger_base.y)/2]
+        return hand_point
 
     def perpendicular_vector(self, origin, upper_point):
         # Vector from origin to upper_point (middle finger base)
@@ -103,7 +109,21 @@ class VisionNode(Node):
     def draw_middle_point(self, img):
         h, w, _ = img.shape
         px, py = w//2, h//2
-        cv2.circle(img, (px, py), 8, (0, 255, 0), cv2.FILLED)
+        cv2.circle(img, (px, py), 20, (0, 255, 0), cv2.FILLED)
+
+    def calculate_distance_from_center(self, hand_point, circle_radius=20, img_width=720):
+        euclidian_distance =  math.sqrt((hand_point[0]-0.5)**2 + (hand_point[1]-0.5)**2)
+        
+        if euclidian_distance >= circle_radius/img_width:
+            distance = euclidian_distance
+        else:
+            distance = 0
+
+        return distance
+
+    def calculate_angle(self, point1, point2):
+        angle =  math.atan((point2[1] - point1[1]) / (point2[0] - point1[0]))
+        return math.degrees(angle)
 
 def main(args=None):
     rclpy.init(args=args)
