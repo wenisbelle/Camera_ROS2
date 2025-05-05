@@ -6,6 +6,8 @@ import cv2
 import mediapipe as mp
 import math
 
+from camera_interface.msg import CameraInterface
+
 
 class VisionNode(Node):
     def __init__(self):
@@ -18,6 +20,7 @@ class VisionNode(Node):
             10)
 
         self.publisher = self.create_publisher(Image, '/vision/image_annotated', 10)
+        self.publisher_camera_distances = self.create_publisher(CameraInterface, '/distances', 10)
         
         self.bridge = CvBridge()
         self.mp_hands = mp.solutions.hands.Hands(max_num_hands=1)
@@ -58,10 +61,13 @@ class VisionNode(Node):
             origin = [w/2, h/2]
             distance = self.calculate_distance_from_center(hand_point)
             angle = self.calculate_angle(hand_point, perpendicular_vector)
-            print(f"Distance: {distance} and Angle: {angle}")
-            print(h)
-            #print(f"Origin: {origin}")
-        
+            distance_msg = CameraInterface()
+            distance_msg.distance_x = distance[0]
+            distance_msg.distance_y = distance[1]
+            distance_msg.angle = angle
+
+            self.publisher_camera_distances.publish(distance_msg)
+                    
 
         # Publish annotated image
         try:
@@ -113,13 +119,16 @@ class VisionNode(Node):
 
     def calculate_distance_from_center(self, hand_point, circle_radius=20, img_width=720):
         euclidian_distance =  math.sqrt((hand_point[0]-0.5)**2 + (hand_point[1]-0.5)**2)
-        
-        if euclidian_distance >= circle_radius/img_width:
-            distance = euclidian_distance
-        else:
-            distance = 0
 
-        return distance
+        distance_x = (hand_point[0] - 0.5)
+        distance_y = (hand_point[1] - 0.5)
+      
+        if euclidian_distance <= circle_radius/img_width:
+            distance_x = 0.0
+            distance_y = 0.0
+
+
+        return [distance_x, distance_y]
 
     def calculate_angle(self, point1, point2):
         angle =  math.atan((point2[1] - point1[1]) / (point2[0] - point1[0]))
