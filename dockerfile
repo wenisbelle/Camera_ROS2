@@ -33,16 +33,11 @@ RUN apt-get install -y python3-pip \
     python3-pip \
     python3-dev \
     python3-opencv \
-    ros-humble-cv-bridge
-
-RUN pip3 install --pre torch --index-url https://download.pytorch.org/whl/nightly/cu124
-RUN pip3 install tensorflow
+    ros-humble-cv-bridge \
+    ros-humble-rmw-cyclonedds-cpp
 
 RUN pip3 install "numpy<2"
 RUN pip3 install "pybind11>=2.12"
-
-RUN python3 -c "import torch; print(torch.cuda.is_available())" && \
-    python3 -c "import tensorflow as tf; print(tf.config.list_physical_devices('GPU'))"
 
 RUN apt-get install -y ros-humble-librealsense2* \
                         ros-humble-realsense2-* 
