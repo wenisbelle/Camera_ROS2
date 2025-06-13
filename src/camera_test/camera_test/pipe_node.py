@@ -1,12 +1,16 @@
 import rclpy
 from rclpy.node import Node
 from sensor_msgs.msg import Image
+from geometry_msgs.msg import Pose
 from cv_bridge import CvBridge
 import cv2
 import mediapipe as mp
 import math
 
 from camera_interface.msg import CameraInterface
+
+## TO DO
+## Create a function that reads the hand and stop the robot with I'm with my hand closed 
 
 
 class VisionNode(Node):
@@ -20,12 +24,13 @@ class VisionNode(Node):
             10)
 
         self.publisher = self.create_publisher(Image, '/vision/image_annotated', 10)
-        self.publisher_camera_distances = self.create_publisher(CameraInterface, '/distances', 10)
+        self.publisher_pose = self.create_publisher(Pose, '/camera_target_pose', 10)
         
         self.bridge = CvBridge()
         self.mp_hands = mp.solutions.hands.Hands(max_num_hands=1)
         self.mp_draw = mp.solutions.drawing_utils
         self.count = 0
+        self.FINGERS_DOWN = [False, False, False, False]
         
 
     def image_callback(self, msg):
@@ -41,10 +46,11 @@ class VisionNode(Node):
         results = self.mp_hands.process(img_rgb)
         wrist = []
         middle_finger_base = []
+        circle_radius=40
+        img_width=720
 
         if results.multi_hand_landmarks:
-            coordenadas = []
-        
+      
             wrist = results.multi_hand_landmarks[0].landmark[0]
             middle_finger_base = results.multi_hand_landmarks[0].landmark[9]
             hand_point = self.origin_ref(wrist, middle_finger_base)
@@ -60,13 +66,35 @@ class VisionNode(Node):
             h, w, _ = img.shape
             origin = [w/2, h/2]
             distance = self.calculate_distance_from_center(hand_point)
-            angle = self.calculate_angle(hand_point, perpendicular_vector)
-            distance_msg = CameraInterface()
-            distance_msg.distance_x = distance[0]
-            distance_msg.distance_y = distance[1]
-            distance_msg.angle = angle
-
-            self.publisher_camera_distances.publish(distance_msg)
+            yaw_angle = self.calculate_angle(hand_point, perpendicular_vector)
+            
+            pose_msg = Pose()
+            
+            info_fingers = self.fingers_up(results.multi_hand_landmarks[0])
+            if info_fingers == self.FINGERS_DOWN:
+                pose_msg.position.x = 0.0
+                pose_msg.position.y = 0.0
+                pose_msg.position.z = 0.0
+                pose_msg.orientation.x = 0.0
+                pose_msg.orientation.y = 0.0
+                pose_msg.orientation.z = 0.0
+                pose_msg.orientation.w = 0.0
+            else:
+                pose_msg.position.x = distance[0]
+                pose_msg.position.y = distance[1]
+                pose_msg.position.z = 0.0
+                if distance[2] <= circle_radius/img_width:
+                    pose_msg.orientation.x = 0.0
+                    pose_msg.orientation.y = 0.0
+                    pose_msg.orientation.z = 0.0
+                    pose_msg.orientation.w = 0.0
+                else:
+                    pose_msg.orientation.x = math.cos(yaw_angle/2)
+                    pose_msg.orientation.y = 0.0
+                    pose_msg.orientation.z = 0.0
+                    pose_msg.orientation.w = math.sin(yaw_angle/2)
+            
+            self.publisher_pose.publish(pose_msg)
                     
 
         # Publish annotated image
@@ -115,9 +143,9 @@ class VisionNode(Node):
     def draw_middle_point(self, img):
         h, w, _ = img.shape
         px, py = w//2, h//2
-        cv2.circle(img, (px, py), 20, (0, 255, 0), cv2.FILLED)
+        cv2.circle(img, (px, py), 40, (0, 255, 0), cv2.FILLED)
 
-    def calculate_distance_from_center(self, hand_point, circle_radius=20, img_width=720):
+    def calculate_distance_from_center(self, hand_point, circle_radius=40, img_width=720):
         euclidian_distance =  math.sqrt((hand_point[0]-0.5)**2 + (hand_point[1]-0.5)**2)
 
         distance_x = (hand_point[0] - 0.5)
@@ -127,12 +155,20 @@ class VisionNode(Node):
             distance_x = 0.0
             distance_y = 0.0
 
-
-        return [distance_x, distance_y]
+        return [distance_x, distance_y, euclidian_distance]
 
     def calculate_angle(self, point1, point2):
         angle =  math.atan((point2[1] - point1[1]) / (point2[0] - point1[0]))
-        return math.degrees(angle)
+        return angle
+
+    def fingers_up(self, hand):
+        fingers = []
+        for finger_upper_point in [8,12, 16, 20]:
+            if hand.landmark[finger_upper_point].y <  hand.landmark[finger_upper_point-2].y: # no opencv o eixo y é invertido
+                fingers.append(True)
+            else:
+                fingers.append(False)
+        return fingers
 
 def main(args=None):
     rclpy.init(args=args)

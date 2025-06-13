@@ -39,8 +39,16 @@ RUN apt-get install -y python3-pip \
 RUN pip3 install "numpy<2"
 RUN pip3 install "pybind11>=2.12"
 
-RUN apt-get install -y ros-humble-librealsense2* \
-                        ros-humble-realsense2-* 
+RUN apt-get install -y ros-humble-librealsense2*
+#RUN apt-get update && \
+#    apt-get install -y ros-humble-realsense2-*
+
+RUN curl -sSL https://raw.githubusercontent.com/ros/rosdistro/master/ros.key -o /usr/share/keyrings/ros-archive-keyring.gpg && \
+    apt-get update && \
+    apt-get install -y \
+    ros-humble-realsense2-camera \
+    ros-humble-realsense2-description \
+    ros-humble-realsense2-camera-msgs
 
 RUN apt-get install -y python3-opencv
 
@@ -66,7 +74,6 @@ RUN colcon build
 
 RUN echo "export ROS_DOMAIN_ID=30" >> ~/.bashrc && \
     echo "export RMW_IMPLEMENTATION=rmw_cyclonedds_cpp" >> ~/.bashrc && \
-    #echo "export CYCLONEDDS_URI=/turtlebot_ws/src/dds_config/cyclonedds_unicast_wlan.xml" >> ~/.bashrc && \
     echo "source /opt/ros/humble/setup.bash" >> ~/.bashrc && \
     echo "source /Intel_Camera/install/setup.bash" >> ~/.bashrc
  
