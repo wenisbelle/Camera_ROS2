@@ -9,9 +9,6 @@ import math
 
 from camera_interface.msg import CameraInterface
 
-## TO DO
-## Create a function that reads the hand and stop the robot with I'm with my hand closed 
-
 
 class VisionNode(Node):
     def __init__(self):
@@ -89,9 +86,9 @@ class VisionNode(Node):
                     pose_msg.orientation.z = 0.0
                     pose_msg.orientation.w = 0.0
                 else:
-                    pose_msg.orientation.x = math.cos(yaw_angle/2)
+                    pose_msg.orientation.x = 0.0
                     pose_msg.orientation.y = 0.0
-                    pose_msg.orientation.z = 0.0
+                    pose_msg.orientation.z = math.cos(yaw_angle/2)
                     pose_msg.orientation.w = math.sin(yaw_angle/2)
             
             self.publisher_pose.publish(pose_msg)
